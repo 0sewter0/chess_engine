@@ -1,6 +1,7 @@
 #include "bitboard.h"
 #include "magic_numbers.h"
-#include "generate_moves.h"
+#include "move_init.h"
+#include "move.h"
 
 Bitboard knight_attacks[64];
 

@@ -1,21 +1,13 @@
 #include "bitboard.h"
-#include "generate_moves.h"
-#include <time.h>
+#include "move_generator.h"
+#include "move.h"
 #include <stdio.h>
 
 int main() {
-    init_slider_attacks();
-
-    clock_t start = clock();
-
-    Bitboard dummy = 0ULL;
-    for(int i = 0; i < 100000000; i++) {
-        dummy ^= get_bishop_attacks(d4, 123456789ULL);
-    }
-
-    clock_t end = clock();
-    double time_spent = (double)(end - start) / CLOCKS_PER_SEC;
-
-    printf("%f sec", time_spent);
+    int move = encode_move(e2, e4, P, 0, 0, 1, 0, 0);
+    printf("Move: ");
+    print_move(move);
+    printf("\nIs double push? %d\n", get_move_double(move));
+    printf("Source sq: %d (%s)\n", get_move_source(move), square_to_coordinates[get_move_source(move)]);
     return 0;
 }

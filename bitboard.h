@@ -14,20 +14,36 @@ enum {
     a5, b5, c5, d5, e5, f5, g5, h5,
     a6, b6, c6, d6, e6, f6, g6, h6,
     a7, b7, c7, d7, e7, f7, g7, h7,
-    a8, b8, c8, d8, e8, f8, g8, h8
+    a8, b8, c8, d8, e8, f8, g8, h8,
+    no_sq
 };
 
 enum { P, N, B, R, Q, K, p, n, b, r, q, k};
 enum { WHITE, BLACK, BOTH };
 
 typedef struct {
-    Bitboard piece_boards[12];
+    Bitboard bitboards[12];
     Bitboard occupancies[3];
+
+    int side;
+    int enpassant;
+    int castle;
 } Board;
+
+enum { WK = 1, WQ = 2, BK = 4, BQ = 8};
+
+
 
 #define SET_BIT(bb, square)  ((bb) |= (1ULL << square))
 #define GET_BIT(bb, square)  (((bb) >> (square)) & 1ULL)
-#define CLEAR_BIT(bb, square)  ((bb) & ~(1ULL << (square)))
+#define CLEAR_BIT(bb, square)  ((bb) &= ~(1ULL << (square)))
+
+static inline int get_lsb_index(Bitboard bb) {
+    if(bb) {
+        return __builtin_ctzll(bb);
+    }
+    return -1;
+}
 
 void print_bitboard(Bitboard bb);
 void init_board(Board *board);
