@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include "bitboard.h"
 
+int is_square_attacked(int square, int side, Board *board);
+
 /*
 0000 0000 0000 0000 0000 0000 0011 1111 -> source
 0000 0000 0000 0000 0000 1111 1100 0000 -> target
@@ -30,6 +32,13 @@ typedef struct {
     int count;
 } moves;
 
+typedef struct {
+    int castle;
+    int enpassant;
+    int captured;
+} Undo;
+
+static inline void unmake_move(Board *board, int move, Undo *undo);
 static inline void add_move(moves *move_list, int move) {
     move_list->moves[move_list->count] = move;
     move_list->count++;
@@ -63,7 +72,29 @@ static inline void print_move(int move) {
     }
 }
 
-int make_move(Board *board, int move) {
+static inline void update_occupancies(Board *board) {
+    board->occupancies[WHITE] = 0ULL;
+    board->occupancies[BLACK] = 0ULL;
+    board->occupancies[BOTH] = 0ULL;
+
+    for(int p = 0; p <= K; p++) {
+        board->occupancies[WHITE] |= board->bitboards[p];
+    }
+
+    for(int p = 6; p <= k; p++) {
+        board->occupancies[BLACK] |= board->bitboards[p];
+    }
+
+    board->occupancies[BOTH] = board->occupancies[WHITE] | board->occupancies[BLACK];
+}
+
+static inline int make_move(Board *board, int move, Undo *undo) {
+    undo->castle = board->castle;
+    undo->captured = 0;
+    undo->enpassant = board->enpassant;
+
+    board->enpassant = -1;
+
     int source = get_move_source(move);
     int target = get_move_target(move);
     int piece = get_move_piece(move);
@@ -84,6 +115,7 @@ int make_move(Board *board, int move) {
 
         for(int bb_piece = start_piece; bb_piece <= end_piece; bb_piece++) {
             if(GET_BIT(board->bitboards[bb_piece], target)) {
+                undo->captured = bb_piece;
                 CLEAR_BIT(board->bitboards[bb_piece], target);
                 break;
             }
@@ -95,6 +127,7 @@ int make_move(Board *board, int move) {
         SET_BIT(board->bitboards[promoted], target);
     }
     if(enpassant) {
+        undo->captured = (side == WHITE) ? p : P;
         int target_pawn_sq = (side == WHITE) ? (target - 8) : (target + 8);
         CLEAR_BIT(board->bitboards[(side == WHITE) ? p : P], target_pawn_sq);
     }
@@ -114,6 +147,71 @@ int make_move(Board *board, int move) {
         }
     }
     static const int castling_rights[64] = {
-        
+        13, 15, 15, 15, 12, 15, 15, 14,
+        15, 15, 15, 15, 15, 15, 15, 15,
+        15, 15, 15, 15, 15, 15, 15, 15,
+        15, 15, 15, 15, 15, 15, 15, 15,
+        15, 15, 15, 15, 15, 15, 15, 15,
+        15, 15, 15, 15, 15, 15, 15, 15,
+        15, 15, 15, 15, 15, 15, 15, 15,
+        7, 15, 15, 15, 3, 15, 15, 11
+    };
+    board->castle &= castling_rights[source];
+    board->castle &= castling_rights[target];
+
+    board->side ^= 1;
+    update_occupancies(board);
+
+    int king_sq = get_lsb_index(board->bitboards[(side == WHITE) ? K : k]);
+    if(is_square_attacked(king_sq, board->side, board)) {
+        unmake_move(board, move, undo);
+        return 0;
     }
+    return 1;
+}
+
+static inline void unmake_move(Board *board, int move, Undo *undo) {
+    board->side ^= 1;
+    int side = board->side;
+
+    int source = get_move_source(move);
+    int target = get_move_target(move);
+    int piece = get_move_piece(move);
+    int promoted = get_move_promoted(move);
+    int capture = get_move_capture(move);
+    int enpassant = get_move_enpassant(move);
+    int castling = get_move_castling(move);
+
+    if (promoted) {
+        CLEAR_BIT(board->bitboards[promoted], target);
+        SET_BIT(board->bitboards[(side == WHITE) ? P : p], source);
+    } else {
+        CLEAR_BIT(board->bitboards[piece], target);
+        SET_BIT(board->bitboards[piece], source);
+    }
+    if (capture) {
+        if (enpassant) {
+            int target_pawn_sq = (side == WHITE) ? (target - 8) : (target + 8);
+            SET_BIT(board->bitboards[(side == WHITE) ? p : P], target_pawn_sq);
+        } else {
+            SET_BIT(board->bitboards[undo->captured], target);
+        }
+    }
+
+    if (castling) {
+        switch (target) {
+            case g1:
+                CLEAR_BIT(board->bitboards[R], f1); SET_BIT(board->bitboards[R], h1); break;
+            case c1: 
+                CLEAR_BIT(board->bitboards[R], d1); SET_BIT(board->bitboards[R], a1); break;
+            case g8: 
+                CLEAR_BIT(board->bitboards[r], f8); SET_BIT(board->bitboards[r], h8); break;
+            case c8:
+                CLEAR_BIT(board->bitboards[r], d8); SET_BIT(board->bitboards[r], a8); break;
+        }
+    }
+    board->castle = undo->castle;
+    board->enpassant = undo->enpassant;
+
+    update_occupancies(board);
 }

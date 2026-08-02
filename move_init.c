@@ -270,3 +270,11 @@ void init_slider_attacks() {
         }
     }
 }
+
+void init_all() {
+    init_pawn_attacks();
+    init_knight_attacks();
+    init_king_attacks();
+    init_masks();
+    init_slider_attacks();
+}

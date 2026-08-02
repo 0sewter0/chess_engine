@@ -20,6 +20,7 @@ extern const int bishop_relevant_bits[64];
 void init_knight_attacks(void);
 void init_king_attacks(void);
 void init_pawn_attacks(void);
+void init_all(void);
 
 Bitboard rook_attacks(int square, Bitboard occupancy);
 Bitboard bishop_attacks(int square, Bitboard occupancy);
