@@ -152,11 +152,11 @@ Bitboard mask_rook_attacks(int square) {
         attacks |= (1ULL << target_sq);
     }
     for(int target_f = file + 1; target_f < 7; target_f++) {
-        int target_sq = file * 8 + target_f;
+        int target_sq = rank * 8 + target_f;
         attacks |= (1ULL << target_sq);
     }
     for(int target_f = file - 1; target_f > 0; target_f--) {
-        int target_sq = file * 8 + target_f;
+        int target_sq = rank * 8 + target_f;
         attacks |= (1ULL << target_sq);
     }
     return attacks;

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef MOVE_H
+#define MOVE_H
 #include <stdio.h>
 #include "bitboard.h"
 
@@ -132,7 +133,6 @@ static inline int make_move(Board *board, int move, Undo *undo) {
         CLEAR_BIT(board->bitboards[(side == WHITE) ? p : P], target_pawn_sq);
     }
 
-    board->enpassant = -1;
 
     if(double_push) {
         board->enpassant = (side == WHITE) ? (target - 8) : (target + 8);
@@ -215,3 +215,5 @@ static inline void unmake_move(Board *board, int move, Undo *undo) {
 
     update_occupancies(board);
 }
+
+#endif

@@ -2,6 +2,7 @@
 #define PERFT_H
 #include <stdio.h>
 #include "move.h"
+#include "move_generator.h"
 #include <time.h>
 
 uint64_t perft(int depth, Board *board) {
@@ -9,6 +10,7 @@ uint64_t perft(int depth, Board *board) {
         return 1ULL;
     }
     moves move_list;
+    move_list.count = 0;
     generate_moves(board, &move_list);
 
     uint64_t nodes = 0;
@@ -17,8 +19,6 @@ uint64_t perft(int depth, Board *board) {
         Undo undo;
         undo.castle = board->castle;
         undo.enpassant = board->enpassant;
-
-        printf("Trying move: %d/%d\n", i+1, move_list.count);
 
         if(!make_move(board, move_list.moves[i], &undo)) {
             continue;

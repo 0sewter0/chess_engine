@@ -11,7 +11,7 @@ int is_square_attacked(int square, int side, Board *board) {
 
     if(get_bishop_attacks(square, board->occupancies[BOTH]) & (board->bitboards[(side == WHITE) ? B : b] | board->bitboards[(side == WHITE) ? Q : q])) return 1;
 
-    if(get_rook_attacks(square, board->occupancies[BOTH] & board->bitboards[(side == WHITE) ? R : r] | board->bitboards[(side == WHITE) ? Q : q])) return 1;
+    if(get_rook_attacks(square, board->occupancies[BOTH]) & (board->bitboards[(side == WHITE) ? R : r] | board->bitboards[(side == WHITE) ? Q : q])) return 1;
 
     return 0;
 }
@@ -256,7 +256,7 @@ void generate_moves_queen(Board *board, moves *move_list) {
 
     while(bitboard) {
         int source_square = get_lsb_index(bitboard);
-        Bitboard attacks = get_queen_attacks(source_square, board->occupancies[BOTH]) & ~board->occupancies[side];
+        Bitboard attacks = queen_attacks(source_square, board->occupancies[BOTH]) & ~board->occupancies[side];
 
         while(attacks) {
             int target_square = get_lsb_index(attacks);

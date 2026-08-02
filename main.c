@@ -13,10 +13,9 @@ void perft_test(int depth, Board *board) {
 
     moves move_list;
     move_list.count = 0;
-    generate_moves_knight(board, &move_list);
-    printf("%d\n", move_list.count);
+    generate_moves(board, &move_list);
 
-    unsigned long long total_nodes = 0;
+    uint64_t total_nodes = 0;
     clock_t start = clock();
 
     for(int i = 0; i < move_list.count; i++) {
@@ -27,13 +26,13 @@ void perft_test(int depth, Board *board) {
         if(!make_move(board, move_list.moves[i], &undo)) {
             continue;
         }
-
         unsigned long long nodes = perft(depth - 1, board);
         total_nodes += nodes;
 
         unmake_move(board, move_list.moves[i], &undo);
 
-        printf("Move %d: %llu nodes\n", i+1, nodes);
+        print_move(move_list.moves[i]);
+        printf(" : %llu nodes\n", nodes);
     }
     clock_t end = clock();
     double spent_time = (double)(end - start) / CLOCKS_PER_SEC;
@@ -47,16 +46,10 @@ void perft_test(int depth, Board *board) {
 }
 
 int main() {
-    printf("initialization moves\n");
-    init_all();
-
-    printf("initialization board\n");
     Board board;
- 
     init_board(&board);
-    int depth = 1;
-    printf("perft test\n");
-    perft_test(depth, &board);
-    printf("Done\n");
+    print_board(&board);
+    print_bitboard(rook_attacks(a1, board.occupancies[BOTH]));
+    print_bitboard(get_rook_attacks(a1, board.occupancies[BOTH]));
     return 0;
 }
