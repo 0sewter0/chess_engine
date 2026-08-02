@@ -3,15 +3,27 @@
 #include "move_init.h"
 
 int is_square_attacked(int square, int side, Board *board) {
-    if(pawn_attacks[!side][square] & board->bitboards[(side == WHITE) ? P : p]) return 1;
+    int attacker_piece = (side == WHITE) ? P : p;
+    int attacker_knight = (side == WHITE) ? N : n;
+    int attacker_king = (side == WHITE) ? K : k;
+    int attacker_bishop = (side == WHITE) ? B : b;
+    int attacker_rook = (side == WHITE) ? R : r;
+    int attacker_queen = (side == WHITE) ? Q : q;
 
-    if(knight_attacks[square] & board->bitboards[(side == WHITE) ? N : n]) return 1;
+    Bitboard pawns = board->bitboards[attacker_piece];
+    while(pawns) {
+        int pawn_square = get_lsb_index(pawns);
+        int attack_dir = (side == WHITE) ? WHITE : BLACK;
+        if(pawn_attacks[attack_dir][pawn_square] & (1ULL << square)) {
+            return 1;
+        }
+        CLEAR_BIT(pawns, pawn_square);
+    }
 
-    if(king_attacks[square] & board->bitboards[(side == WHITE) ? K : k]) return 1;
-
-    if(get_bishop_attacks(square, board->occupancies[BOTH]) & (board->bitboards[(side == WHITE) ? B : b] | board->bitboards[(side == WHITE) ? Q : q])) return 1;
-
-    if(get_rook_attacks(square, board->occupancies[BOTH]) & (board->bitboards[(side == WHITE) ? R : r] | board->bitboards[(side == WHITE) ? Q : q])) return 1;
+    if(knight_attacks[square] & board->bitboards[attacker_knight]) return 1;
+    if(king_attacks[square] & board->bitboards[attacker_king]) return 1;
+    if(get_bishop_attacks(square, board->occupancies[BOTH]) & (board->bitboards[attacker_bishop] | board->bitboards[attacker_queen])) return 1;
+    if(get_rook_attacks(square, board->occupancies[BOTH]) & (board->bitboards[attacker_rook] | board->bitboards[attacker_queen])) return 1;
 
     return 0;
 }
@@ -125,7 +137,7 @@ void generate_moves_pawn(Board *board, moves *move_list) {
                 } else {
                     add_move(move_list, encode_move(source_square, target_square, P, 0, 0, 0, 0, 0));
 
-                    if((source_square >= a2 && source_square <= h2) && !GET_BIT(board->occupancies[BOTH], source_square + 16)) {
+                    if((source_square >= a2 && source_square <= h2) && !GET_BIT(board->occupancies[BOTH], source_square + 8) && !GET_BIT(board->occupancies[BOTH], source_square + 16)) {
                         add_move(move_list, encode_move(source_square, source_square + 16, P, 0, 0, 1, 0, 0));
                     }
                 }
@@ -141,10 +153,6 @@ void generate_moves_pawn(Board *board, moves *move_list) {
                     add_move(move_list, encode_move(source_square, target_square, P, N, 1, 0, 0, 0));
                 } else {
                     add_move(move_list, encode_move(source_square, target_square, P, 0, 1, 0, 0, 0));
-
-                    if((source_square >= a2 && source_square <= h2) && !GET_BIT(board->occupancies[BOTH], source_square + 16) && !GET_BIT(board->occupancies[BOTH], source_square + 8)) {
-                        add_move(move_list, encode_move(source_square, target_square, P, 0, 0, 1, 0, 0));
-                    }
                 }
                 CLEAR_BIT(attacks, target_square);
             }
@@ -256,7 +264,7 @@ void generate_moves_queen(Board *board, moves *move_list) {
 
     while(bitboard) {
         int source_square = get_lsb_index(bitboard);
-        Bitboard attacks = queen_attacks(source_square, board->occupancies[BOTH]) & ~board->occupancies[side];
+        Bitboard attacks = get_queen_attacks(source_square, board->occupancies[BOTH]) & ~board->occupancies[side];
 
         while(attacks) {
             int target_square = get_lsb_index(attacks);

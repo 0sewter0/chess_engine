@@ -48,8 +48,9 @@ void perft_test(int depth, Board *board) {
 int main() {
     Board board;
     init_board(&board);
-    print_board(&board);
-    print_bitboard(rook_attacks(a1, board.occupancies[BOTH]));
-    print_bitboard(get_rook_attacks(a1, board.occupancies[BOTH]));
+    moves move_list;
+    move_list.count = 0;
+    Bitboard occ = board.occupancies[BOTH];
+    perft_test(7, &board);
     return 0;
 }

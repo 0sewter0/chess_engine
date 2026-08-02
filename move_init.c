@@ -260,13 +260,25 @@ void init_slider_attacks() {
         for(int i = 0; i < bishop_count; i++) {
             Bitboard occ = set_occupancy(i, bishop_relevant_bits[sq], bishop_masks[sq]);
             int index = get_bishop_magic_index(sq, occ);
+            if(index >= (1 << bishop_relevant_bits[sq])) {
+                printf("AAA KERNEL PANIC sq=%d index-%d max=%d\n", sq, index, 1 << bishop_relevant_bits[sq]);
+            }
             bishop_attacks_table[sq][index] = bishop_attacks(sq, occ);
+            if(bishop_attacks_table[sq][index] && bishop_attacks_table[sq][index] != bishop_attacks(sq, occ)) {
+                printf("FATAL ERROR: collision(bishop). sq=%d index=%d\n", sq, index);
+            }
         }
         int rook_count = 1 << rook_relevant_bits[sq];
         for(int i = 0; i < rook_count; i++) {
             Bitboard occ = set_occupancy(i, rook_relevant_bits[sq], rook_masks[sq]);
             int index = get_rook_magic_index(sq, occ);
+            if(index >= (1 << rook_relevant_bits[sq])) {
+                printf("AAA KERNEL PANIC sq=%d index-%d max=%d\n", sq, index, 1 << rook_relevant_bits[sq]);
+            }
             rook_attacks_table[sq][index] = rook_attacks(sq, occ);
+            if(rook_attacks_table[sq][index] && rook_attacks_table[sq][index] != rook_attacks(sq, occ)) {
+                printf("FATAL ERROR: collision(rook). sq=%d index=%d\n", sq, index);
+            }
         }
     }
 }

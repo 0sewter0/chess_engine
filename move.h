@@ -94,7 +94,7 @@ static inline int make_move(Board *board, int move, Undo *undo) {
     undo->captured = 0;
     undo->enpassant = board->enpassant;
 
-    board->enpassant = -1;
+    board->enpassant = no_sq;
 
     int source = get_move_source(move);
     int target = get_move_target(move);
@@ -124,6 +124,7 @@ static inline int make_move(Board *board, int move, Undo *undo) {
     }
 
     if(promoted) {
+        CLEAR_BIT(board->bitboards[(side == WHITE) ? P : p], source);
         CLEAR_BIT(board->bitboards[(side == WHITE) ? P : p], target);
         SET_BIT(board->bitboards[promoted], target);
     }

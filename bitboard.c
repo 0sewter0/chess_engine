@@ -1,5 +1,6 @@
 #include "bitboard.h"
 #include "move.h"
+#include "move_init.h"
 
 const char piece_ascii[] = "PNBRQKpnbrqk";
 
@@ -32,6 +33,7 @@ void init_board(Board *board) {
     board->enpassant = no_sq;
     board->castle = 15;
     update_occupancies(board);
+    init_all();
 }
 
 void print_board(const Board *board) {
