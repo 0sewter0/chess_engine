@@ -2,6 +2,8 @@
 #include "move_generator.h"
 #include "move.h"
 #include "move_init.h"
+#include "search.h"
+#include "evaluation.h"
 #include "perft.h"
 #include <time.h>
 #include <stdio.h>
@@ -48,9 +50,9 @@ void perft_test(int depth, Board *board) {
 int main() {
     Board board;
     init_board(&board);
-    moves move_list;
-    move_list.count = 0;
-    Bitboard occ = board.occupancies[BOTH];
-    perft_test(7, &board);
+
+    uint32_t best = search_position(&board, 5);
+    print_move(best);
+
     return 0;
 }

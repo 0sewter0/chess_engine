@@ -28,6 +28,12 @@ int is_square_attacked(int square, int side, Board *board) {
     return 0;
 }
 
+int is_in_check(Board *board) {
+    int king_piece = (board->side == WHITE) ? K : k;
+    int king_square = get_lsb_index(board->bitboards[king_piece]);
+    return is_square_attacked(king_square, board->side ^ 1, board);
+}
+
 void generate_moves_knight(Board *board, moves *move_list) {
     int side = board->side;
     int piece = (side == WHITE) ? N : n;

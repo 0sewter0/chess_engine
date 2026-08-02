@@ -1,0 +1,16 @@
+CC = gcc
+CFLAGS = -Wall -Wextra -O3 -march=native
+SRC = $(wildcard *.c)
+OBJ = $(SRC:.c=o)
+TARGET = chess_engine
+
+all: $(TARGET)
+
+$(TARGET): $(OBJ)
+    $(CC) $(OBJ) -o $(TARGET)
+
+%.o: %.c
+    $(CC) $(CFLAGS) -c $< -o $@
+
+clean:
+    rm -r $(OBJ) $(TARGET)
