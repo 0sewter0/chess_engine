@@ -107,8 +107,11 @@ static inline int make_move(Board *board, int move, Undo *undo) {
 
     int side = board->side;
 
-    CLEAR_BIT(board->bitboards[piece], source);
-    SET_BIT(board->bitboards[piece], target);
+    uint64_t move_mask = (1ULL << source) | (1ULL << target);
+
+    board->bitboards[piece] ^= move_mask;
+    board->occupancies[side] ^= move_mask;
+    board->occupancies[BOTH] ^= move_mask;
 
     if(capture) {
         int start_piece = (side == WHITE) ? p : P;
@@ -118,6 +121,10 @@ static inline int make_move(Board *board, int move, Undo *undo) {
             if(GET_BIT(board->bitboards[bb_piece], target)) {
                 undo->captured = bb_piece;
                 CLEAR_BIT(board->bitboards[bb_piece], target);
+
+                CLEAR_BIT(board->occupancies[!side], target);
+
+                SET_BIT(board->occupancies[BOTH], target);
                 break;
             }
         }
@@ -161,7 +168,6 @@ static inline int make_move(Board *board, int move, Undo *undo) {
     board->castle &= castling_rights[target];
 
     board->side ^= 1;
-    update_occupancies(board);
 
     int king_sq = get_lsb_index(board->bitboards[(side == WHITE) ? K : k]);
     if(is_square_attacked(king_sq, board->side, board)) {
@@ -183,12 +189,15 @@ static inline void unmake_move(Board *board, int move, Undo *undo) {
     int enpassant = get_move_enpassant(move);
     int castling = get_move_castling(move);
 
+    uint64_t move_mask = (1ULL << source) | (1ULL << target);
+
     if (promoted) {
         CLEAR_BIT(board->bitboards[promoted], target);
         SET_BIT(board->bitboards[(side == WHITE) ? P : p], source);
     } else {
-        CLEAR_BIT(board->bitboards[piece], target);
-        SET_BIT(board->bitboards[piece], source);
+       board->bitboards[piece] ^= move_mask;
+       board->occupancies[side] ^= move_mask;
+       board->occupancies[BOTH] ^= move_mask;
     }
     if (capture) {
         if (enpassant) {
@@ -214,7 +223,6 @@ static inline void unmake_move(Board *board, int move, Undo *undo) {
     board->castle = undo->castle;
     board->enpassant = undo->enpassant;
 
-    update_occupancies(board);
 }
 
 #endif
