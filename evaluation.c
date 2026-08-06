@@ -12,7 +12,7 @@ const Score pesto_table[6][64] = {
         { 0,  0}, { 0,  0}, { 0,  0}, { 0,  0}, { 0,  0}, { 0,  0}, { 0,  0}, { 0,  0}, // a1-h1
         {-13, 0}, {-5,  5}, {-6,  9}, {-10, 8}, {-10, 8}, {-6,  9}, {-5,  5}, {-13,  0}, // a2-h2
         {-11,20}, { 4, 20}, {-3, 23}, {-4, 27}, {-4, 27}, {-3, 23}, { 4, 20}, {-11,20}, // a3-h3
-        {-14,24}, {-2, 38}, {-2, 40}, { 0, 48}, { 0, 48}, {-2, 40}, {-2, 38}, {-14,24}, // a4-h4
+        {-14,24}, {-2, 38}, {-2, 40}, { 10, 48}, { 10, 48}, {-2, 40}, {-2, 38}, {-14,24}, // a4-h4
         {-8, 41}, { 6, 57}, { 7, 62}, {18, 67}, {18, 67}, { 7, 62}, { 6, 57}, {-8, 41}, // a5-h5
         { 6, 82}, {32,100}, {39,105}, {65,110}, {65,110}, {39,105}, {32,100}, { 6, 82}, // a6-h6
         {98,178}, {134,195}, {147,203}, {180,210}, {180,210}, {147,203}, {134,195}, {98,178}, // a7-h7
@@ -109,8 +109,8 @@ int evaluation(const Board *board) {
 
             int flip_sq = sq ^ 56;
 
-            mg_score -= mg_value[piece_type] + pesto_table[piece_type][flip_sq].mg;
-            eg_score -= eg_value[piece_type] + pesto_table[piece_type][flip_sq].eg;
+            mg_score -= (mg_value[piece_type] + pesto_table[piece_type][flip_sq].mg);
+            eg_score -= (eg_value[piece_type] + pesto_table[piece_type][flip_sq].eg);
             game_phase -= game_phase_score[piece_type];
 
             bb &= bb - 1;
@@ -123,5 +123,5 @@ int evaluation(const Board *board) {
     int eg_weight = 24 - game_phase;
     int eval = (mg_score * mg_weight + eg_score * eg_weight) / 24;
 
-    return (board->side == WHITE) ? eval : -eval;
+    return eval;
 }

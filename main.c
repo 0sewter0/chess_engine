@@ -51,8 +51,6 @@ int main() {
     Board board;
     init_board(&board);
 
-    uint32_t best = search_position(&board, 5);
-    print_move(best);
-
+    search_position(&board, 5);
     return 0;
 }
