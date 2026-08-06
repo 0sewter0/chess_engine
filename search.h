@@ -6,7 +6,7 @@
 
 int alpha_beta(Board *board, int depth, int alpha, int beta);
 uint32_t search_position(Board *board, int depth);
-int score_move(Board *board, uint32_t move);
+int score_move(Board *board, uint32_t move, uint32_t tt_move);
 int evaluate_position(Board *board);
 int qsearch(Board *board, int alpha, int beta);
 

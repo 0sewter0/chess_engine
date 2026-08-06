@@ -49,8 +49,11 @@ void perft_test(int depth, Board *board) {
 
 int main() {
     Board board;
+    init_zobrist();
     init_board(&board);
 
-    perft_test(6, &board);
+    clear_tt();
+    printf("Board hash: %llu\n", board.hash_key);
+    search_position(&board, 6);
     return 0;
 }

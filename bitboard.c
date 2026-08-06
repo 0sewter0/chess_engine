@@ -13,6 +13,7 @@ uint64_t piece_keys[12][64];
 uint64_t enpassant_keys[64];
 uint64_t castle_keys[16];
 uint64_t side_key;
+TT_entry TT[TT_SIZE];
 
 void init_board(Board *board) {
     parse_fen(START_FEN, board);
@@ -96,12 +97,16 @@ void parse_fen(const char *fen, Board *board) {
         }
         fen++;
     }
+    if(*fen == ' ') fen++;
+
     if(*fen == 'w') {
         board->side = WHITE;
     } else {
         board->side = BLACK;
     }
-    fen += 2;
+    fen++;
+
+    if(*fen == ' ') fen++;
 
     while(*fen && *fen != ' ') {
         switch(*fen) {
@@ -124,4 +129,5 @@ void parse_fen(const char *fen, Board *board) {
     }
 
     update_occupancies(board);
+    board->hash_key = generate_hash_key(board);
 }

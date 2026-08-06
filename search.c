@@ -6,6 +6,7 @@
 #include "search.h"
 
 #define INF 10000000
+#define NO_HASH_ENTRY 100000
 #define MATE_BOUND 1000000
 
 static const int mvv_lva[6][6] = {
@@ -33,13 +34,13 @@ int is_mate_or_stalemate(Board *board, moves *move_list) {
     }
     return 0;
 }
-    void order_moves(Board *board, moves *move_list) {
+void order_moves(Board *board, moves *move_list, uint32_t tt_move) {
     for(int i = 1; i < move_list->count; i++) {
-        int current = move_list->moves[i];
+        uint32_t current = move_list->moves[i];
         int j = i;
         while(j > 0) {
-            int prev = move_list->moves[j - 1];
-            if(score_move(board, prev) >= score_move(board, current)) {
+            uint32_t prev = move_list->moves[j - 1];
+            if(score_move(board, prev, tt_move) >= score_move(board, current, tt_move)) {
                 break;
             }
             move_list->moves[j] = prev;
@@ -49,15 +50,23 @@ int is_mate_or_stalemate(Board *board, moves *move_list) {
     }
 }
 
-int score_move(Board *board, uint32_t move) {
+int score_move(Board *board, uint32_t move, uint32_t tt_move) {
+    if(move == tt_move && tt_move != 0) {
+        return 1000000;
+    }
+
     if(get_move_capture(move)) {
         int attacker = get_move_piece(move);
         int victim = -1;
 
-        for(int piece = P; piece <= k; piece++) {
-            if(GET_BIT(board->bitboards[piece], get_move_target(move))) {
-                victim = get_move_piece(piece);
-                break;
+        if(get_move_enpassant(move)) {
+            victim = (board->side == WHITE) ? p : P;
+        } else {
+            for(int piece = P; piece <= k; piece++) {
+                if(GET_BIT(board->bitboards[piece], get_move_target(move))) {
+                    victim = piece;
+                    break;
+                }
             }
         }
 
@@ -65,7 +74,6 @@ int score_move(Board *board, uint32_t move) {
             return 100000 + mvv_lva[attacker][victim];
         }
     }
-
     return 0;
 }
 
@@ -80,7 +88,7 @@ int qsearch(Board *board, int alpha, int beta) {
 
     moves move_list;
     generate_moves(board, &move_list);
-    order_moves(board, &move_list);
+    order_moves(board, &move_list, 0);
 
     for(int i = 0; i < move_list.count; i++) {
         if(!get_move_capture(move_list.moves[i])) {
@@ -110,7 +118,16 @@ int qsearch(Board *board, int alpha, int beta) {
 }
 
 int alpha_beta(Board *board, int depth, int alpha, int beta) {
+    uint32_t tt_move = 0;
+
+    int tt_score = read_tt(board, depth, alpha, beta, &tt_move);
+
+    if(tt_score != -INF - 1) {
+        return tt_score;
+    }
+
     if(depth == 0) return qsearch(board, alpha, beta);
+
     moves move_list;
     generate_moves(board, &move_list);
 
@@ -122,9 +139,10 @@ int alpha_beta(Board *board, int depth, int alpha, int beta) {
         return 0;
     }
 
-    order_moves(board, &move_list);
+    order_moves(board, &move_list, tt_move);
 
-    int best_score = -INF;
+    int hash_flag = HASH_ALPHA;
+    uint32_t best_move = 0;
     int legal_moves = 0;
 
     for(int i = 0; i < move_list.count; i++) {
@@ -132,22 +150,22 @@ int alpha_beta(Board *board, int depth, int alpha, int beta) {
         undo.castle = board->castle;
         undo.enpassant = board->enpassant;
 
-        if(!make_move(board, move_list.moves[i], &undo)) {
-            continue;
-        }
+        if(!make_move(board, move_list.moves[i], &undo)) continue;
 
         legal_moves++;
+
         int score = -alpha_beta(board, depth - 1, -beta, -alpha);
         unmake_move(board, move_list.moves[i], &undo);
 
-        if(score > best_score) {
-            best_score = score;
+        if(score >= beta) {
+            write_tt(board, depth, score, HASH_BETA, move_list.moves[i]);
+            return beta;
         }
+
         if(score > alpha) {
+            hash_flag = HASH_EXACT;
             alpha = score;
-        }
-        if(alpha >= beta) {
-            break;
+            best_move = move_list.moves[i];
         }
     }
 
@@ -155,15 +173,21 @@ int alpha_beta(Board *board, int depth, int alpha, int beta) {
         return evaluate_mate(depth);
     }
 
-    return best_score;
+    write_tt(board, depth, alpha, hash_flag, best_move);
+
+    return alpha;
 }
 
 uint32_t search_position(Board *board, int depth) {
     clock_t start = clock();
+
     moves move_list;
     generate_moves(board, &move_list);
 
-    order_moves(board, &move_list);
+    uint32_t tt_move = 0;
+    read_tt(board, depth, -INF, INF, &tt_move);
+
+    order_moves(board, &move_list, tt_move);
 
     uint32_t best_move = 0;
     int best_score = -INF;
@@ -193,7 +217,9 @@ uint32_t search_position(Board *board, int depth) {
     clock_t end = clock();
 
     printf("Time spent: %.3f\n", (double)(end - start) / CLOCKS_PER_SEC);
+
     printf("info depth %d score cp %d\n", depth, best_score);
     print_move(best_move);
+    
     return best_move;
 }

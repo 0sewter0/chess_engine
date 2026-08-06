@@ -1,3 +1,5 @@
+#ifndef MAGIC_NUMBERS_H
+#define MAGIC_NUMBERS_H
 #include "bitboard.h"
 
 const uint64_t bishop_magics[64] = {
@@ -68,3 +70,5 @@ const Bitboard rook_magics[64] = {
 0x20030a0244872ULL, 0x12001008414402ULL,
 0x2006104900a0804ULL, 0x1004081002402ULL
 };
+
+#endif
