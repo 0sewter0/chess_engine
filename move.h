@@ -1,5 +1,6 @@
 #ifndef MOVE_H
 #define MOVE_H
+#include "Zobrist_hash.h"
 #include <stdio.h>
 #include "bitboard.h"
 
@@ -37,6 +38,8 @@ typedef struct {
     int castle;
     int enpassant;
     int captured;
+
+    uint64_t hash_key;
 } Undo;
 
 static inline void unmake_move(Board *board, int move, Undo *undo);
@@ -93,7 +96,11 @@ static inline int make_move(Board *board, int move, Undo *undo) {
     undo->castle = board->castle;
     undo->captured = 0;
     undo->enpassant = board->enpassant;
+    undo->hash_key = board->hash_key;
 
+    //if(board->enpassant != no_sq) {
+        //board->hash_key ^= enpassant_keys[board->enpassant];
+    //}
     board->enpassant = no_sq;
 
     int source = get_move_source(move);
@@ -109,9 +116,11 @@ static inline int make_move(Board *board, int move, Undo *undo) {
 
     CLEAR_BIT(board->bitboards[piece], source);
     CLEAR_BIT(board->occupancies[side], source);
+    //board->hash_key ^= piece_keys[piece][source];
 
     SET_BIT(board->bitboards[piece], target);
     SET_BIT(board->occupancies[side], target);
+    //board->hash_key ^= piece_keys[piece][target];
 
     if(capture) {
         int start_piece = (side == WHITE) ? p : P;
@@ -122,6 +131,7 @@ static inline int make_move(Board *board, int move, Undo *undo) {
                 undo->captured = bb_piece;
                 CLEAR_BIT(board->bitboards[bb_piece], target);
                 CLEAR_BIT(board->occupancies[!side], target);
+                //board->hash_key ^= piece_keys[undo->captured][target];
                 break;
             }
         }
@@ -130,26 +140,31 @@ static inline int make_move(Board *board, int move, Undo *undo) {
     if(promoted) {
         CLEAR_BIT(board->bitboards[(side == WHITE) ? P : p], source);
         CLEAR_BIT(board->bitboards[(side == WHITE) ? P : p], target);
+        //board->hash_key ^= piece_keys[(side == WHITE) ? P : p][target];
         SET_BIT(board->bitboards[promoted], target);
+        //board->hash_key ^= piece_keys[promoted][target];
     }
     if(enpassant) {
         undo->captured = (side == WHITE) ? p : P;
         int target_pawn_sq = (side == WHITE) ? (target - 8) : (target + 8);
         CLEAR_BIT(board->bitboards[(side == WHITE) ? p : P], target_pawn_sq);
         CLEAR_BIT(board->occupancies[!side], target_pawn_sq);
+        //board->hash_key ^= piece_keys[undo->captured][target_pawn_sq];
     }
 
 
     if(double_push) {
         board->enpassant = (side == WHITE) ? (target - 8) : (target + 8);
+
+        //board->hash_key ^= enpassant_keys[board->enpassant];
     }
 
     if(castling) {
         switch(target) {
-            case g1: CLEAR_BIT(board->bitboards[R], h1); CLEAR_BIT(board->occupancies[WHITE], h1); SET_BIT(board->bitboards[R], f1); SET_BIT(board->occupancies[WHITE], f1); break;
-            case c1: CLEAR_BIT(board->bitboards[R], a1); CLEAR_BIT(board->occupancies[WHITE], a1); SET_BIT(board->bitboards[R], d1); SET_BIT(board->occupancies[WHITE], d1); break;
-            case g8: CLEAR_BIT(board->bitboards[r], h8); CLEAR_BIT(board->occupancies[BLACK], h8); SET_BIT(board->bitboards[r], f8); SET_BIT(board->occupancies[BLACK], f8); break;
-            case c8: CLEAR_BIT(board->bitboards[r], a8); CLEAR_BIT(board->occupancies[BLACK], a8); SET_BIT(board->bitboards[r], d8); SET_BIT(board->occupancies[BLACK], d8); break;
+            case g1: CLEAR_BIT(board->bitboards[R], h1); CLEAR_BIT(board->occupancies[WHITE], h1); SET_BIT(board->bitboards[R], f1); SET_BIT(board->occupancies[WHITE], f1); break; //board->hash_key ^= piece_keys[R][h1]; board->hash_key ^= piece_keys[R][f1]; break;
+            case c1: CLEAR_BIT(board->bitboards[R], a1); CLEAR_BIT(board->occupancies[WHITE], a1); SET_BIT(board->bitboards[R], d1); SET_BIT(board->occupancies[WHITE], d1); break; //board->hash_key ^= piece_keys[R][a1]; board->hash_key ^= piece_keys[R][d1]; break;
+            case g8: CLEAR_BIT(board->bitboards[r], h8); CLEAR_BIT(board->occupancies[BLACK], h8); SET_BIT(board->bitboards[r], f8); SET_BIT(board->occupancies[BLACK], f8); break; //board->hash_key ^= piece_keys[r][h8]; board->hash_key ^= piece_keys[r][f8]; break;
+            case c8: CLEAR_BIT(board->bitboards[r], a8); CLEAR_BIT(board->occupancies[BLACK], a8); SET_BIT(board->bitboards[r], d8); SET_BIT(board->occupancies[BLACK], d8); break; //board->hash_key ^= piece_keys[r][a8]; board->hash_key ^= piece_keys[r][d8]; break;
         }
     }
     static const int castling_rights[64] = {
@@ -166,6 +181,7 @@ static inline int make_move(Board *board, int move, Undo *undo) {
     board->castle &= castling_rights[target];
 
     board->side ^= 1;
+    //board->hash_key ^= side_key;
     board->occupancies[BOTH] = board->occupancies[WHITE] | board->occupancies[BLACK];
 
     int king_sq = get_lsb_index(board->bitboards[(side == WHITE) ? K : k]);
@@ -179,6 +195,7 @@ static inline int make_move(Board *board, int move, Undo *undo) {
 static inline void unmake_move(Board *board, int move, Undo *undo) {
     board->side ^= 1;
     int side = board->side;
+    //board->hash_key = undo->hash_key;
 
     int source = get_move_source(move);
     int target = get_move_target(move);

@@ -28,6 +28,8 @@ typedef struct {
     int side;
     int enpassant;
     int castle;
+
+    uint64_t hash_key;
 } Board;
 
 enum { WK = 1, WQ = 2, BK = 4, BQ = 8};
@@ -48,5 +50,6 @@ static inline int get_lsb_index(Bitboard bb) {
 void print_bitboard(Bitboard bb);
 void init_board(Board *board);
 void print_board(const Board *board);
+void parse_fen(const char *fen, Board *board);
 
 #endif

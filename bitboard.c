@@ -1,38 +1,21 @@
 #include "bitboard.h"
 #include "move.h"
 #include "move_init.h"
+#include "Zobrist_hash.h"
+#include <ctype.h>
+#include <string.h>
+
+#define START_FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
 const char piece_ascii[] = "PNBRQKpnbrqk";
 
+uint64_t piece_keys[12][64];
+uint64_t enpassant_keys[64];
+uint64_t castle_keys[16];
+uint64_t side_key;
+
 void init_board(Board *board) {
-    for(int i = 0; i < 12; i++) board->bitboards[i] = 0ULL;
-    for(int i = 0; i < 3; i++) board->occupancies[i] = 0ULL;
-
-    for(int sq = a2; sq <= h2; sq++) SET_BIT(board->bitboards[P], sq);
-    SET_BIT(board->bitboards[R], h1); SET_BIT(board->bitboards[R], a1);
-    SET_BIT(board->bitboards[N], g1); SET_BIT(board->bitboards[N], b1);
-    SET_BIT(board->bitboards[B], f1); SET_BIT(board->bitboards[B], c1);
-    SET_BIT(board->bitboards[Q], d1);
-    SET_BIT(board->bitboards[K], e1);
-
-    for(int sq = a7; sq <= h7; sq++) SET_BIT(board->bitboards[p], sq);
-    SET_BIT(board->bitboards[r], a8); SET_BIT(board->bitboards[r], h8);
-    SET_BIT(board->bitboards[n], g8); SET_BIT(board->bitboards[n], b8);
-    SET_BIT(board->bitboards[b], f8); SET_BIT(board->bitboards[b], c8);
-    SET_BIT(board->bitboards[q], d8);
-    SET_BIT(board->bitboards[k], e8);
-
-    for(int piece = P; piece <= K; piece++) {
-        board->occupancies[WHITE] |= board->bitboards[piece];
-    }
-    for(int piece = p; piece <= k; piece++) {
-        board->occupancies[BLACK] |= board->bitboards[piece];
-    }
-    board->occupancies[BOTH] = board->occupancies[WHITE] | board->occupancies[BLACK];
-    board->side = WHITE;
-    board->enpassant = no_sq;
-    board->castle = 15;
-    update_occupancies(board);
+    parse_fen(START_FEN, board);
     init_all();
 }
 
@@ -73,4 +56,72 @@ void print_bitboard(Bitboard bb) {
     }
     printf("\n     a b c d e f g h\n\n");
     printf(" Bitboard Value: %lluULL\n\n", (unsigned long long)bb);
+}
+
+void parse_fen(const char *fen, Board *board) {
+    memset(board, 0, sizeof(Board));
+    board->enpassant = no_sq;
+
+    int rank = 7;
+    int file = 0;
+
+    while(rank >= 0 && *fen && *fen != ' ') {
+        char symbol = *fen;
+
+        if(symbol == '/') {
+            rank--;
+            file = 0;
+        } else if(isdigit(symbol)) {
+            int empty_squares = symbol - '0';
+            file += empty_squares;
+        } else {
+            int square = rank * 8 + file;
+
+            switch(symbol) {
+                case 'P': SET_BIT(board->bitboards[P], square); break;
+                case 'N': SET_BIT(board->bitboards[N], square); break;
+                case 'B': SET_BIT(board->bitboards[B], square); break;
+                case 'R': SET_BIT(board->bitboards[R], square); break;
+                case 'Q': SET_BIT(board->bitboards[Q], square); break;
+                case 'K': SET_BIT(board->bitboards[K], square); break;
+
+                case 'p': SET_BIT(board->bitboards[p], square); break;
+                case 'n': SET_BIT(board->bitboards[n], square); break;
+                case 'b': SET_BIT(board->bitboards[b], square); break;
+                case 'r': SET_BIT(board->bitboards[r], square); break;
+                case 'q': SET_BIT(board->bitboards[q], square); break;
+                case 'k': SET_BIT(board->bitboards[k], square); break;
+            }
+            file++;
+        }
+        fen++;
+    }
+    if(*fen == 'w') {
+        board->side = WHITE;
+    } else {
+        board->side = BLACK;
+    }
+    fen += 2;
+
+    while(*fen && *fen != ' ') {
+        switch(*fen) {
+            case 'K': board->castle |= WK; break;
+            case 'Q': board->castle |= WQ; break;
+            case 'k': board->castle |= BK; break;
+            case 'q': board->castle |= BQ; break;
+            case '-': break;
+        }
+        fen++;
+    }
+    if(*fen == ' ') fen++;
+
+    if(*fen != '-') {
+        int ep_file = fen[0] - 'a';
+        int ep_rank = fen[1] - '1';
+        board->enpassant = ep_rank * 8 + ep_file;
+    } else {
+        board->enpassant = no_sq;
+    }
+
+    update_occupancies(board);
 }

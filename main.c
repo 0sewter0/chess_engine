@@ -51,6 +51,6 @@ int main() {
     Board board;
     init_board(&board);
 
-    search_position(&board, 5);
+    perft_test(6, &board);
     return 0;
 }
