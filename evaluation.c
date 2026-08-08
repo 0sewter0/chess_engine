@@ -12,7 +12,7 @@ const Score pesto_table[6][64] = {
         { 0,  0}, { 0,  0}, { 0,  0}, { 0,  0}, { 0,  0}, { 0,  0}, { 0,  0}, { 0,  0}, // a1-h1
         {-13, 0}, {-5,  5}, {-6,  9}, {-10, 8}, {-10, 8}, {-6,  9}, {-5,  5}, {-13,  0}, // a2-h2
         {-11,20}, { 4, 20}, {-3, 23}, {-4, 27}, {-4, 27}, {-3, 23}, { 4, 20}, {-11,20}, // a3-h3
-        {-14,24}, {-2, 38}, {-2, 40}, { 10, 48}, { 10, 48}, {-2, 40}, {-2, 38}, {-14,24}, // a4-h4
+        {-14,24}, {-2, 38}, {-2, 40}, { 20, 48}, { 20, 48}, {-2, 40}, {-2, 38}, {-14,24}, // a4-h4
         {-8, 41}, { 6, 57}, { 7, 62}, {18, 67}, {18, 67}, { 7, 62}, { 6, 57}, {-8, 41}, // a5-h5
         { 6, 82}, {32,100}, {39,105}, {65,110}, {65,110}, {39,105}, {32,100}, { 6, 82}, // a6-h6
         {98,178}, {134,195}, {147,203}, {180,210}, {180,210}, {147,203}, {134,195}, {98,178}, // a7-h7
@@ -84,6 +84,30 @@ static const int game_phase_score[12] = {
 const int mg_value[6] = {100, 320, 330, 500, 900, 20000};
 const int eg_value[6] = {170, 300, 330, 500, 950, 20000};
 
+static int evaluate_center_control(const Board *board) {
+    int eval = 0;
+
+    if(GET_BIT(board->bitboards[P], d4)) eval += 30;
+    if(GET_BIT(board->bitboards[P], e4)) eval += 30;
+    if(GET_BIT(board->bitboards[P], c4)) eval += 16;
+    if(GET_BIT(board->bitboards[P], f4)) eval += 16;
+    if(GET_BIT(board->bitboards[p], d5)) eval -= 24;
+    if(GET_BIT(board->bitboards[p], e5)) eval -= 24;
+    if(GET_BIT(board->bitboards[p], c5)) eval -= 16;
+    if(GET_BIT(board->bitboards[p], f5)) eval -= 16;
+
+    if(GET_BIT(board->bitboards[P], d3)) eval += 10;
+    if(GET_BIT(board->bitboards[P], e3)) eval += 10;
+    if(GET_BIT(board->bitboards[P], c3)) eval += 6;
+    if(GET_BIT(board->bitboards[P], f3)) eval += 6;
+    if(GET_BIT(board->bitboards[p], d6)) eval -= 10;
+    if(GET_BIT(board->bitboards[p], e6)) eval -= 10;
+    if(GET_BIT(board->bitboards[p], c6)) eval -= 6;
+    if(GET_BIT(board->bitboards[p], f6)) eval -= 6;
+
+    return eval;
+}
+
 int evaluation(const Board *board) {
     int mg_score = 0;
     int eg_score = 0;
@@ -111,7 +135,7 @@ int evaluation(const Board *board) {
 
             mg_score -= (mg_value[piece_type] + pesto_table[piece_type][flip_sq].mg);
             eg_score -= (eg_value[piece_type] + pesto_table[piece_type][flip_sq].eg);
-            game_phase -= game_phase_score[piece_type];
+            game_phase += game_phase_score[piece_type];
 
             bb &= bb - 1;
         }
@@ -122,6 +146,7 @@ int evaluation(const Board *board) {
     int mg_weight = game_phase;
     int eg_weight = 24 - game_phase;
     int eval = (mg_score * mg_weight + eg_score * eg_weight) / 24;
+    eval += evaluate_center_control(board);
 
     return eval;
 }

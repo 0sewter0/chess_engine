@@ -30,6 +30,8 @@ typedef struct {
     int castle;
 
     uint64_t hash_key;
+    uint64_t hash_history[1024];
+    int history_ply;
 } Board;
 
 enum { WK = 1, WQ = 2, BK = 4, BQ = 8};

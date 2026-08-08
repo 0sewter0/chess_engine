@@ -25,15 +25,29 @@ int evaluate_position(Board *board) {
 }
 
 int evaluate_mate(int depth) {
-    return -MATE_BOUND + (100 - depth);
+    return -MATE_BOUND + depth;
 }
 
-int is_mate_or_stalemate(Board *board, moves *move_list) {
+int is_mate_or_stalemate(Board *board, moves *move_list, int ply) {
     if(move_list->count == 0) {
-        return is_in_check(board) ? 1 : 2;
+        if(is_in_check(board)) {
+            return -MATE_BOUND + ply;
+        } else {
+            return 0;
+        }
+    }
+    return 1000000;
+}
+
+int is_repetition(Board *board) {
+    for(int i = 0; i < board->history_ply - 1; i++) {
+        if(board->hash_history[i] == board->hash_key) {
+            return 1;
+        }
     }
     return 0;
 }
+
 void order_moves(Board *board, moves *move_list, uint32_t tt_move) {
     for(int i = 1; i < move_list->count; i++) {
         uint32_t current = move_list->moves[i];
@@ -117,7 +131,10 @@ int qsearch(Board *board, int alpha, int beta) {
     return alpha;
 }
 
-int alpha_beta(Board *board, int depth, int alpha, int beta) {
+int alpha_beta(Board *board, int depth, int alpha, int beta, int ply) {
+    if(ply > 0 && is_repetition(board)) {
+        return 0;
+    }
     uint32_t tt_move = 0;
 
     int tt_score = read_tt(board, depth, alpha, beta, &tt_move);
@@ -131,12 +148,9 @@ int alpha_beta(Board *board, int depth, int alpha, int beta) {
     moves move_list;
     generate_moves(board, &move_list);
 
-    int terminal = is_mate_or_stalemate(board, &move_list);
-    if(terminal == 1) {
-        return evaluate_mate(depth);
-    }
-    if(terminal == 2) {
-        return 0;
+    int terminal = is_mate_or_stalemate(board, &move_list, ply);
+    if(terminal != 1000000) {
+        return terminal;
     }
 
     order_moves(board, &move_list, tt_move);
@@ -154,7 +168,7 @@ int alpha_beta(Board *board, int depth, int alpha, int beta) {
 
         legal_moves++;
 
-        int score = -alpha_beta(board, depth - 1, -beta, -alpha);
+        int score = -alpha_beta(board, depth - 1, -beta, -alpha, ply + 1);
         unmake_move(board, move_list.moves[i], &undo);
 
         if(score >= beta) {
@@ -203,7 +217,7 @@ uint32_t search_position(Board *board, int depth) {
             continue;
         }
 
-        int score = -alpha_beta(board, depth - 1, -beta, -alpha);
+        int score = -alpha_beta(board, depth - 1, -beta, -alpha, 1);
         unmake_move(board, move_list.moves[i], &undo);
 
         if(score > best_score) {
@@ -216,10 +230,8 @@ uint32_t search_position(Board *board, int depth) {
     }
     clock_t end = clock();
 
-    printf("Time spent: %.3f\n", (double)(end - start) / CLOCKS_PER_SEC);
-
-    printf("info depth %d score cp %d\n", depth, best_score);
+    printf("Time spent: %.5f\n", (double)(end - start) / CLOCKS_PER_SEC);
     print_move(best_move);
-    
+
     return best_move;
 }

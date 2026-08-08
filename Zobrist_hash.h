@@ -24,7 +24,7 @@ static inline void clear_tt() {
 }
 
 static inline void write_tt(Board *board, int depth, int score, int flag, uint32_t best_move) {
-    int index = board->hash_key % TT_SIZE;
+    int index = (int)(board->hash_key & (TT_SIZE - 1));
 
     TT[index].hash_key = board->hash_key;
     TT[index].depth = depth;
@@ -38,18 +38,33 @@ static inline int read_tt(Board *board, int depth, int alpha, int beta, uint32_t
         return -10000000 - 1;
     }
 
-    int index = board->hash_key % TT_SIZE;
+    int index = (int)(board->hash_key & (TT_SIZE - 1));
     TT_entry *entry = &TT[index];
 
-    if(entry->hash_key == board->hash_key) {
-        if(tt_move) *tt_move = entry->move;
-
-        if(entry->depth >= depth) {
-            if(entry->flag == HASH_EXACT) return entry->score;
-            if(entry->flag == HASH_ALPHA && entry->score <= alpha) return alpha;
-            if(entry->flag == HASH_BETA && entry->score >= beta) return beta;
-        }
+    if(entry->hash_key != board->hash_key) {
+        return -10000000 - 1;
     }
+
+    if(tt_move) {
+        *tt_move = entry->move;
+    }
+
+    if(entry->depth < depth) {
+        return -10000000 - 1;
+    }
+
+    if(entry->flag == HASH_EXACT) {
+        return entry->score;
+    }
+
+    if(entry->flag == HASH_ALPHA && entry->score >= beta) {
+        return entry->score;
+    }
+
+    if(entry->flag == HASH_BETA && entry->score <= alpha) {
+        return entry->score;
+    }
+
     return -10000000 - 1;
 }
 

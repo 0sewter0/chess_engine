@@ -17,7 +17,6 @@ TT_entry TT[TT_SIZE];
 
 void init_board(Board *board) {
     parse_fen(START_FEN, board);
-    init_all();
 }
 
 void print_board(const Board *board) {

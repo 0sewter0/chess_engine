@@ -1,5 +1,11 @@
 #ifndef MOVE_H
 #define MOVE_H
+
+typedef struct {
+    uint32_t moves[256];
+    int count;
+} moves;
+
 #include "Zobrist_hash.h"
 #include <stdio.h>
 #include "bitboard.h"
@@ -28,11 +34,6 @@ int is_square_attacked(int square, int side, Board *board);
 #define get_move_double(move) (((move) >> 21) & 0x1)
 #define get_move_enpassant(move) (((move) >> 22) & 0x1)
 #define get_move_castling(move) (((move) >> 23) & 0x1)
-
-typedef struct {
-    int moves[256];
-    int count;
-} moves;
 
 typedef struct {
     int castle;
@@ -97,6 +98,8 @@ static inline int make_move(Board *board, int move, Undo *undo) {
     undo->captured = 0;
     undo->enpassant = board->enpassant;
     undo->hash_key = board->hash_key;
+    board->hash_history[board->history_ply] = board->hash_key;
+    board->history_ply++;
 
     int source = get_move_source(move);
     int target = get_move_target(move);
@@ -118,10 +121,6 @@ static inline int make_move(Board *board, int move, Undo *undo) {
     CLEAR_BIT(board->bitboards[piece], source);
     CLEAR_BIT(board->occupancies[side], source);
     board->hash_key ^= piece_keys[piece][source];
-
-    SET_BIT(board->bitboards[piece], target);
-    SET_BIT(board->occupancies[side], target);
-    board->hash_key ^= piece_keys[piece][target];
 
     if(promoted) {
         SET_BIT(board->bitboards[promoted], target);
@@ -195,6 +194,7 @@ static inline void unmake_move(Board *board, int move, Undo *undo) {
     board->side ^= 1;
     int side = board->side;
     board->hash_key = undo->hash_key;
+    board->history_ply--;
 
     int source = get_move_source(move);
     int target = get_move_target(move);

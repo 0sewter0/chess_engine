@@ -4,9 +4,12 @@
 #include "move_init.h"
 #include "search.h"
 #include "evaluation.h"
+#include "uci.h"
 #include "perft.h"
 #include <time.h>
 #include <stdio.h>
+
+#define START_FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
 void perft_test(int depth, Board *board) {
     printf("\n=====================================\n");
@@ -48,12 +51,7 @@ void perft_test(int depth, Board *board) {
 }
 
 int main() {
-    Board board;
-    init_zobrist();
-    init_board(&board);
-
-    clear_tt();
-    printf("Board hash: %llu\n", board.hash_key);
-    search_position(&board, 6);
+    init_all();
+    uci_loop();
     return 0;
 }
